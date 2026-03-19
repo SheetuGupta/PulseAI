@@ -6,7 +6,8 @@ from google import genai
 # CONFIG
 # ==============================
 
-API_KEY = "AIzaSyBWiw6CzNI0m70tlPogv11xdFTd80bo4PM"
+load_dotenv()
+API_KEY = os.getenv("GENAI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
 MODEL = "gemini-2.5-flash"

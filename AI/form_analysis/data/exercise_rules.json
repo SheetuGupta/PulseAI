@@ -1,0 +1,83 @@
+{
+  "squat": {
+    "knee_angle_bottom": {"min": 80, "max": 100},
+    "hip_angle_bottom": {"min": 70, "max": 100},
+    "spine_angle": {"min": 160, "max": 180},
+    "common_issues": [
+      "knee valgus",
+      "forward lean",
+      "incomplete depth",
+      "heel rise"
+    ]
+  },
+  "deadlift": {
+    "knee_start": {"min": 110, "max": 130},
+    "hip_start": {"min": 80, "max": 100},
+    "spine_angle": {"min": 170, "max": 180},
+    "common_issues": [
+      "rounded back",
+      "hips rising too fast",
+      "bar too far from legs"
+    ]
+  },
+  "pushup": {
+    "elbow_angle_bottom": {"min": 80, "max": 100},
+    "shoulder_angle": {"min": 45, "max": 60},
+    "spine_angle": {"min": 170, "max": 180},
+    "common_issues": [
+      "hip bending",
+      "elbows flared too wide",
+      "incomplete range of motion"
+    ]
+  },
+  "lunge": {
+    "front_knee_bottom": {"min": 80, "max": 100},
+    "back_knee_bottom": {"min": 80, "max": 100},
+    "spine_angle": {"min": 170, "max": 180},
+    "common_issues": [
+      "front knee over toe excessively",
+      "leaning forward too much",
+      "knee valgus"
+    ]
+  },
+  "plank": {
+    "spine_angle": {"min": 170, "max": 180},
+    "hip_angle": {"min": 170, "max": 180},
+    "shoulder_angle": {"min": 80, "max": 100},
+    "common_issues": [
+      "hips too high",
+      "hips sagging",
+      "neck not neutral"
+    ]
+  },
+  "bicep_curl": {
+    "elbow_angle_top": {"min": 30, "max": 50},
+    "elbow_angle_bottom": {"min": 160, "max": 180},
+    "shoulder_movement": {"min": 0, "max": 10},
+    "common_issues": [
+      "swinging body",
+      "elbows moving forward",
+      "incomplete extension"
+    ]
+  },
+  "shoulder_press": {
+    "elbow_angle_bottom": {"min": 80, "max": 100},
+    "elbow_angle_top": {"min": 170, "max": 180},
+    "spine_angle": {"min": 170, "max": 180},
+    "common_issues": [
+      "excessive lower back arch",
+      "pressing forward",
+      "incomplete lockout"
+    ]
+  },
+  "row": {
+    "spine_angle": {"min": 160, "max": 180},
+    "elbow_angle_top": {"min": 80, "max": 100},
+    "torso_angle": {"min": 20, "max": 45},
+    "common_issues": [
+      "rounded back",
+      "pulling with biceps only",
+      "standing up too much"
+    ]
+  }
+}

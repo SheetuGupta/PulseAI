@@ -1,0 +1,106 @@
+# =========================
+# 🔐 ENV & SECRETS
+# =========================
+.env
+*.env
+.env.*
+AI/.env
+AI/*/.env
+
+# =========================
+# 🧠 PYTHON CACHE / BYTECODE
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# =========================
+# 🏗️ VIRTUAL ENVIRONMENTS
+# =========================
+myvenv/
+venv/
+env/
+ENV/
+.venv/
+
+# =========================
+# 📦 DEPENDENCY / BUILD FILES
+# =========================
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# =========================
+# 📝 LOG FILES
+# =========================
+*.log
+error_log.txt
+
+# =========================
+# 🗄️ DATABASE / TEMP FILES
+# =========================
+*.sqlite3
+*.db
+*.db-journal
+
+# =========================
+# 🧪 TEST / DEBUG FILES
+# =========================
+test_*.py
+debug.log
+
+# =========================
+# 🧾 IDE / EDITOR FILES
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# =========================
+# 📊 DATA FILES (OPTIONAL)
+# =========================
+# If large or generated
+*.csv
+*.xlsx
+*.jsonl
+
+# =========================
+# 🤖 ML / AI ARTIFACTS
+# =========================
+*.pt
+*.pth
+*.onnx
+*.h5
+*.ckpt
+*.tflite
+
+# =========================
+# 🎥 MEDIA / GENERATED FILES
+# =========================
+*.mp4
+*.avi
+*.mov
+*.png
+*.jpg
+*.jpeg
+
+# =========================
+# 🧠 MODEL FILES / BINARIES
+# =========================
+*.bin
+*.task
+
+# =========================
+# ⚙️ SYSTEM FILES
+# =========================
+Thumbs.db
+
+# =========================
+# 🚀 OPTIONAL (KEEP IF GENERATED)
+# =========================
+# If pose_landmarker.task is downloaded, ignore:
+AI/form_analysis/pipeline/pose_landmarker.task

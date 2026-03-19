@@ -1,0 +1,13 @@
+# e:/videoAI/form_analysis/requirements.txt
+fastapi==0.115.5
+uvicorn==0.32.1
+python-multipart==0.0.20
+google-genai==1.16.0
+mediapipe>=0.10.30
+opencv-python-headless==4.10.0.84
+ffmpeg-python==0.2.0
+Pillow==11.1.0
+numpy==2.2.1
+python-dotenv==1.0.1
+requests==2.32.3
+pydantic==2.10.4
