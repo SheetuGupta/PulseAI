@@ -3,7 +3,7 @@ import ffmpeg
 import tempfile
 import os
 from PIL import Image
-from config.settings import MAX_VIDEO_SECONDS
+from AI.form_analysis.config.settings import MAX_VIDEO_SECONDS
 
 def validate_video(video_bytes: bytes) -> dict:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_file:

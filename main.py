@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 from AI.workoutgenerator import workout_pipeline
+from AI.mealplanner import meal_pipeline
+from AI.form_analysis.routers.form import analyze_form_pipeline
+from fastapi import UploadFile, File, Form
 
 app = FastAPI()
 
@@ -52,51 +55,32 @@ async def analyze_video(
     exercise_hint: str = Form(""),
     perceived_difficulty: str = Form("")
 ):
-    try:
-        await video.read()
+    print("🔥 VIDEO ANALYSIS API HIT")
 
-        return {
-            "success": True,
-            "feedback": {
-                "exercise_detected": exercise_hint or "pushup",
-                "form_score": 7,
-                "is_correct_form": False,
-                "issues": [
-                    {
-                        "timestamp_seconds": 3,
-                        "joint_or_body_part": "elbow",
-                        "observation": "Elbow flare out ho raha hai",
-                        "correction_cue": "Elbows ko body ke close rakho",
-                        "severity": "moderate"
-                    }
-                ],
-                "overall_summary": "Form thoda improve karna hai",
-                "priority_correction": "Elbow alignment fix karo"
-            }
-        }
+    video_bytes = await video.read()
 
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    result = analyze_form_pipeline(
+        video_bytes,
+        exercise_hint,
+        perceived_difficulty
+    )
 
+    print("✅ ANALYSIS RESULT:", result)
+
+    return result
 # -------------------------------
 # Meal Plan API (FIXED)
 # -------------------------------
 @app.post("/meal-plan")
 async def generate_meal_plan(request: UserRequest):
     print("MEAL API CALLED")
-    data = request.dict()
 
-    # abhi demo ke liye simple response
+    data = request.dict()   # ✅ define data
+
+    result = meal_pipeline(data)   # ✅ correct function
+
     return {
         "success": True,
         "user": data["name"],
-        "meal_plan": {
-            "breakfast": "Oats + fruits",
-            "lunch": "2 roti + sabzi",
-            "dinner": "Light khichdi",
-            "tips": "Avoid sugar, drink more water"
-        }
+        "meal_plan": result
     }

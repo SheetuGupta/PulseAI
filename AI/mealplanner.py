@@ -1,11 +1,15 @@
-import google.genai as genai
+import os
 import json
-
+from typing import Dict
+from dotenv import load_dotenv
+from google import genai
 # ==============================
 # CONFIG
 # ==============================
+
 load_dotenv()
 API_KEY = os.getenv("GENAI_API_KEY")
+print("API KEY:", API_KEY)
 client = genai.Client(api_key=API_KEY)
 MODEL = "gemini-2.5-flash"
 
@@ -25,45 +29,16 @@ FOODS = [
 ]
 
 # ==============================
-# USER INPUT
+# CALORIE TARGET
 # ==============================
 
-user_input = {
-    "name": "Ritika Tiwari",
-    "age": 21,
-    "weight": 65,
-    "activityLevel": "sedentary",
-    "fitnessGoals": ["weight-loss"],
-    "dietaryPreferences": ["vegetarian"],
-    "targetWeight": 50
-}
-
-# ==============================
-# CALORIE TARGET LOGIC
-# ==============================
-
-def calculate_calorie_target(user):
-    # simple weight loss logic
-    base = user["weight"] * 22   # maintenance approx
-    deficit = 500               # fat loss
+def calculate_calorie_target(user: Dict):
+    base = user["weight"] * 22
+    deficit = 500
     return int(base - deficit)
 
 # ==============================
-# MEMORY
-# ==============================
-
-memory = {
-    "goal": "weight-loss meal plan",
-    "preference": user_input["dietaryPreferences"][0],
-    "target_calories": calculate_calorie_target(user_input),
-    "current_calories": 0,
-    "selected_meals": [],
-    "attempted_meals": [],
-    "plan_complete": False
-}
-
-# ==============================
-# AI PLANNER
+# AI CALL
 # ==============================
 
 def ai_meal_planner(memory, foods):
@@ -71,7 +46,6 @@ def ai_meal_planner(memory, foods):
     prompt = f"""
 You are an AI diet planning agent.
 
-GOAL: {memory['goal']}
 TARGET CALORIES: {memory['target_calories']}
 CURRENT CALORIES: {memory['current_calories']}
 
@@ -81,14 +55,10 @@ FAILED: {memory['attempted_meals']}
 FOOD OPTIONS:
 {foods}
 
-TASK:
-Select the NEXT BEST food item.
-
 RULES:
 - Must be vegetarian
-- Must keep total calories within target
-- Prefer low calorie if close to limit
-- Do NOT repeat items
+- Must not exceed calories
+- Do NOT repeat
 - Respond ONLY with food name
 """
 
@@ -100,14 +70,29 @@ RULES:
     return response.text.strip()
 
 # ==============================
-# MEAL AGENT
+# MAIN PIPELINE (IMPORTANT)
 # ==============================
 
-def meal_agent():
+def meal_pipeline(user_input: Dict):
 
-    while not memory["plan_complete"]:
+    memory = {
+        "goal": "weight-loss meal plan",
+        "preference": user_input["dietaryPreferences"][0],
+        "target_calories": calculate_calorie_target(user_input),
+        "current_calories": 0,
+        "selected_meals": [],
+        "attempted_meals": [],
+        "plan_complete": False
+    }
+
+    max_iterations = 20
+    iterations = 0
+
+    while not memory["plan_complete"] and iterations < max_iterations:
+        iterations += 1
 
         choice = ai_meal_planner(memory, FOODS)
+        print("AI RAW:", choice)
 
         food = next((f for f in FOODS if f["name"] == choice), None)
 
@@ -118,12 +103,10 @@ def meal_agent():
         if food["name"] in [m["name"] for m in memory["selected_meals"]]:
             continue
 
-        # calorie constraint
         if memory["current_calories"] + food["calories"] > memory["target_calories"]:
             memory["attempted_meals"].append(choice)
             continue
 
-        # accept
         memory["selected_meals"].append({
             "name": food["name"],
             "calories": food["calories"]
@@ -131,27 +114,27 @@ def meal_agent():
 
         memory["current_calories"] += food["calories"]
 
-        # stop condition
         if memory["current_calories"] >= memory["target_calories"] * 0.9:
             memory["plan_complete"] = True
 
-    # ==============================
-    # FINAL JSON OUTPUT
-    # ==============================
+    if not memory["selected_meals"]:
+        return {
+            "user": user_input["name"],
+            "error": "Meal generation failed"
+        }
 
-    output = {
+    return {
         "user": user_input["name"],
         "target_calories": memory["target_calories"],
         "total_calories": memory["current_calories"],
         "meals": memory["selected_meals"]
     }
-
-    print(json.dumps(output, indent=2))
-
-
 # ==============================
-# RUN
+# TEST
 # ==============================
 
 if __name__ == "__main__":
-    meal_agent()
+
+    result = meal_pipeline(input_json)
+
+    print(json.dumps(result, indent=2))

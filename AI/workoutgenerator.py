@@ -1,5 +1,7 @@
+import os
 import json
 from typing import Dict, List
+from dotenv import load_dotenv
 from google import genai
 
 # ==============================

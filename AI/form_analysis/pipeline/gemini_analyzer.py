@@ -1,8 +1,8 @@
 # e:/videoAI/form_analysis/pipeline/gemini_analyzer.py
 import json
 import PIL.Image
-from config.settings import gemini_client, MODEL
-from models.schemas import FrameAnalysis
+from AI.form_analysis.config.settings import gemini_client, MODEL
+from AI.form_analysis.models.schemas import FrameAnalysis
 
 def build_analysis_prompt(frame_analyses: list[FrameAnalysis], exercise_hint: str = "", perceived_difficulty: str = "") -> str:
     frame_count = len([f for f in frame_analyses if f.pose_detected])

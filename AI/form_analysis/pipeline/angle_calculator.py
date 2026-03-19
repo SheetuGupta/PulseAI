@@ -1,6 +1,6 @@
 # e:/videoAI/form_analysis/pipeline/angle_calculator.py
 import numpy as np
-from models.schemas import PoseLandmark, JointAngle
+from AI.form_analysis.models.schemas import PoseLandmark, JointAngle
 
 def calculate_angle(a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> float:
     a_np = np.array(a)

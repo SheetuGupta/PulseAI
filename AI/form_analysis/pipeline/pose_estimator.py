@@ -7,9 +7,8 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from PIL import Image
 
-from models.schemas import FrameAnalysis, PoseLandmark
-from pipeline.angle_calculator import calculate_angles
-
+from AI.form_analysis.models.schemas import FrameAnalysis, PoseLandmark
+from AI.form_analysis.pipeline.angle_calculator import calculate_angles
 POSE_LANDMARK_NAMES = [
     "nose", "left_eye_inner", "left_eye",
     "left_eye_outer", "right_eye_inner", "right_eye",
