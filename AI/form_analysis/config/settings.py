@@ -7,7 +7,7 @@ load_dotenv()
 
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 PORT: int = int(os.getenv("PORT", 8001))
-MAX_VIDEO_SECONDS: int = int(os.getenv("MAX_VIDEO_SECONDS", 10))
+MAX_VIDEO_SECONDS: int = int(os.getenv("MAX_VIDEO_SECONDS", 30))
 FRAMES_PER_SECOND: int = int(os.getenv("FRAMES_PER_SECOND", 1))
 
 MODEL = "gemini-2.5-flash"
