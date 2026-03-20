@@ -9,8 +9,8 @@ from AI.mealplanner import meal_pipeline
 from AI.form_analysis.routers.form import analyze_form_pipeline
 from AI.form_analysis.pipeline.gemini_analyzer import analyze_with_gemini
 
-# ✅ Gemini config
-from AI.form_analysis.config.settings import gemini_client, MODEL
+# ✅ OpenAI config
+from AI.form_analysis.config.settings import openai_client, MODEL
 
 app = FastAPI()
 
@@ -168,17 +168,13 @@ Reply in Hinglish like a real coach.
 Keep it short, motivating, and practical.
 """
 
-        # 🔥 Gemini call
-        response = gemini_client.models.generate_content(
+        # 🔥 OpenAI call
+        response = openai_client.chat.completions.create(
             model=MODEL,
-            contents=[prompt]
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        # ✅ Safe extraction
-        reply = getattr(response, "text", None)
-
-        if not reply:
-            reply = response.candidates[0].content.parts[0].text
+        reply = response.choices[0].message.content.strip()
 
         reply = reply.strip()
 

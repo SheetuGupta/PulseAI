@@ -2,28 +2,28 @@ import os
 import json
 from typing import Dict, List
 from dotenv import load_dotenv
-from google import genai
+from openai import OpenAI
 
 # ==============================
 # CONFIG
 # ==============================
 
 load_dotenv(override=True)
-API_KEY = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or "UNSET_API_KEY"
-client = genai.Client(api_key=API_KEY)
+API_KEY = os.getenv("OPENAI_API_KEY") or "UNSET_API_KEY"
+client = OpenAI(api_key=API_KEY)
 
-MODEL = "gemini-2.5-flash-lite"
+MODEL = "gpt-4o-mini"
 
 # ==============================
 # SAFE LLM CALL
 # ==============================
 
 def call_llm(prompt: str) -> str:
-    response = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=prompt
+        messages=[{"role": "user", "content": prompt}]
     )
-    return response.text.strip()
+    return response.choices[0].message.content.strip()
 
 # ==============================
 # SAFE JSON PARSER

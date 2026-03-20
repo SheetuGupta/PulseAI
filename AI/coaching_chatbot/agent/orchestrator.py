@@ -1,6 +1,6 @@
 # coaching_chatbot/agent/orchestrator.py
 from typing import AsyncGenerator
-from config.settings import gemini_client, MODEL
+from config.settings import openai_client, MODEL
 from agent.safety_guard import check_safety
 from agent.intent_detector import detect_intent
 from agent.context_builder import build_context
@@ -62,10 +62,11 @@ async def run(user_id: str, session_id: str, message: str, db) -> ChatResponse:
     context = build_context(user_id, session_id, message, intent.value, db)
     prompt = build_prompt(message, intent.value, context)
     
-    response_obj = gemini_client.models.generate_content(
-        model=MODEL, contents=prompt
+    response_obj = openai_client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}]
     )
-    full_response = response_obj.text
+    full_response = response_obj.choices[0].message.content
     
     plan_change = parse_plan_change(full_response)
     if plan_change:
@@ -104,12 +105,15 @@ async def stream_response(user_id: str, session_id: str, message: str, db) -> As
     
     full_response = ""
     try:
-        for chunk in gemini_client.models.generate_content_stream(
-            model=MODEL, contents=prompt
+        for chunk in openai_client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True
         ):
-            if chunk.text:
-                full_response += chunk.text
-                yield chunk.text
+            text_chunk = chunk.choices[0].delta.content
+            if text_chunk:
+                full_response += text_chunk
+                yield text_chunk
     except Exception as e:
         error_msg = f"\n\n[System Error during generation]: {str(e)}"
         full_response += error_msg

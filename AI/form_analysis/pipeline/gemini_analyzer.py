@@ -1,7 +1,9 @@
 # e:/videoAI/form_analysis/pipeline/gemini_analyzer.py
 import json
+import base64
+from io import BytesIO
 import PIL.Image
-from AI.form_analysis.config.settings import gemini_client, MODEL
+from AI.form_analysis.config.settings import openai_client, MODEL
 from AI.form_analysis.models.schemas import FrameAnalysis
 
 def build_analysis_prompt(frame_analyses: list[FrameAnalysis], exercise_hint: str = "", perceived_difficulty: str = "") -> str:
@@ -76,21 +78,32 @@ Be specific. Reference the actual angles from the pose data. A good correction c
 def analyze_with_gemini(frames: list[dict], frame_analyses: list[FrameAnalysis], exercise_hint: str = "", perceived_difficulty: str = "") -> dict:
     prompt = build_analysis_prompt(frame_analyses, exercise_hint, perceived_difficulty)
     
-    content = [prompt]
+    content = [{"type": "text", "text": prompt}]
     
     frame_count = 0
     for frame in frames:
         if frame_count >= 30:
             break
-        content.append(frame["image"])
+            
+        buffered = BytesIO()
+        frame["image"].save(buffered, format="JPEG")
+        base64_img = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        
+        content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{base64_img}",
+                "detail": "low"
+            }
+        })
         frame_count += 1
         
     try:
-        response = gemini_client.models.generate_content(
+        response = openai_client.chat.completions.create(
             model=MODEL,
-            contents=content
+            messages=[{"role": "user", "content": content}]
         )
-        text = response.text.strip()
+        text = response.choices[0].message.content.strip()
         
         if text.startswith("```json"):
             text = text[7:]

@@ -1,5 +1,5 @@
 # coaching_chatbot/utils/memory_extractor.py
-from config.settings import gemini_client, MODEL
+from config.settings import openai_client, MODEL
 from models.schemas import MemoryChunk
 from datetime import datetime
 import json
@@ -77,10 +77,11 @@ def extract_memories(user_message: str, assistant_message: str, intent: str) -> 
     )
     
     try:
-        response = gemini_client.models.generate_content(
-            model=MODEL, contents=prompt
+        response = openai_client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}]
         )
-        text = response.text.strip()
+        text = response.choices[0].message.content.strip()
         text = text.replace("```json", "").replace("```", "").strip()
         parsed = json.loads(text)
         return [MemoryChunk(**item) for item in parsed]

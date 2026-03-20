@@ -2,16 +2,16 @@ import os
 import json
 from typing import Dict
 from dotenv import load_dotenv
-from google import genai
+from openai import OpenAI
 # ==============================
 # CONFIG
 # ==============================
 
 load_dotenv(override=True)
-API_KEY = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or "UNSET_API_KEY"
+API_KEY = os.getenv("OPENAI_API_KEY") or "UNSET_API_KEY"
 print("API KEY:", API_KEY)
-client = genai.Client(api_key=API_KEY)
-MODEL = "gemini-2.5-flash-lite"
+client = OpenAI(api_key=API_KEY)
+MODEL = "gpt-4o-mini"
 
 # ==============================
 # FOOD DATABASE
@@ -58,12 +58,12 @@ RULES:
 - Respond ONLY with a valid JSON array of food names. For example: ["Oats", "Salad", "Paneer Curry"]
 """
 
-    response = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=prompt
+        messages=[{"role": "user", "content": prompt}]
     )
 
-    text = response.text.strip()
+    text = response.choices[0].message.content.strip()
     if text.startswith("```json"):
         text = text[7:]
     elif text.startswith("```"):

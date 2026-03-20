@@ -1,12 +1,12 @@
 # coaching_chatbot/memory/embedder.py
-from config.settings import gemini_client, EMBEDDING_MODEL
+from config.settings import openai_client, EMBEDDING_MODEL
 
 def embed(text: str) -> list[float]:
-    result = gemini_client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=text
+    result = openai_client.embeddings.create(
+        input=text,
+        model=EMBEDDING_MODEL
     )
-    return result.embeddings[0].values
+    return result.data[0].embedding
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
     return [embed(t) for t in texts]
