@@ -1,14 +1,22 @@
 from fastapi import FastAPI, UploadFile, File, Form
-from pydantic import BaseModel
-from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+
+# ✅ Your pipelines
 from AI.workoutgenerator import workout_pipeline
 from AI.mealplanner import meal_pipeline
 from AI.form_analysis.routers.form import analyze_form_pipeline
-from fastapi import UploadFile, File, Form
+from AI.form_analysis.pipeline.gemini_analyzer import analyze_with_gemini
+
+# ✅ Gemini config
+from AI.form_analysis.config.settings import gemini_client, MODEL
 
 app = FastAPI()
 
+# -------------------------------
+# CORS
+# -------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +26,7 @@ app.add_middleware(
 )
 
 # -------------------------------
-# Request Model
+# Request Models
 # -------------------------------
 class UserRequest(BaseModel):
     name: str
@@ -31,13 +39,26 @@ class UserRequest(BaseModel):
     healthIssues: Optional[str] = "none"
     targetWeight: Optional[float] = None
 
+
+class ChatRequest(BaseModel):
+    user: Dict[str, Any]
+    message: str
+    todayPlan: Optional[Dict[str, Any]] = None
+    planName: Optional[str] = ""
+
+    # 🔥 form analysis support
+    frame_analyses: Optional[list] = None
+    frames: Optional[list] = None
+    exercise_hint: Optional[str] = ""
+    perceived_difficulty: Optional[str] = ""
+
+
 # -------------------------------
-# Generate Workout Plan API
+# Workout Plan API
 # -------------------------------
 @app.post("/generate-plan")
 async def generate_plan(request: UserRequest):
     data = request.dict()
-
     result = workout_pipeline(data)
 
     return {
@@ -46,8 +67,9 @@ async def generate_plan(request: UserRequest):
         "response": result
     }
 
+
 # -------------------------------
-# Analyze Video API (Mock Version)
+# Video Analysis API
 # -------------------------------
 @app.post("/analyze-video")
 async def analyze_video(
@@ -65,22 +87,110 @@ async def analyze_video(
         perceived_difficulty
     )
 
-    print("✅ ANALYSIS RESULT:", result)
-
     return result
+
+
 # -------------------------------
-# Meal Plan API (FIXED)
+# Meal Plan API
 # -------------------------------
 @app.post("/meal-plan")
 async def generate_meal_plan(request: UserRequest):
-    print("MEAL API CALLED")
+    print("🍽️ MEAL API CALLED")
 
-    data = request.dict()   # ✅ define data
-
-    result = meal_pipeline(data)   # ✅ correct function
+    data = request.dict()
+    result = meal_pipeline(data)
 
     return {
         "success": True,
         "user": data["name"],
         "meal_plan": result
     }
+
+
+# -------------------------------
+# Chat API (AI Coach)
+# -------------------------------
+@app.post("/chat")
+async def chat_with_ai(request: ChatRequest):
+    try:
+        user = request.user
+        message = request.message
+
+        # =========================================================
+        # 🔥 1. FORM ANALYSIS MODE
+        # =========================================================
+        if request.frames and request.frame_analyses:
+            print("⚡ Running form analysis...")
+
+            result = analyze_with_gemini(
+                frames=request.frames,
+                frame_analyses=request.frame_analyses,
+                exercise_hint=request.exercise_hint,
+                perceived_difficulty=request.perceived_difficulty
+            )
+
+            return {
+                "success": True,
+                "type": "analysis",
+                "data": result
+            }
+
+        # =========================================================
+        # 💬 2. CHAT MODE
+        # =========================================================
+        print("💬 Running chat...")
+
+        prompt = f"""
+You are a smart AI fitness coach.
+
+User:
+- Name: {user.get('name')}
+- Goal: {user.get('fitnessGoals')}
+
+User message:
+"{message}"
+"""
+
+        # 👉 Inject workout context
+        if request.todayPlan:
+            prompt += f"""
+
+Today's Plan ({request.planName}):
+Focus: {request.todayPlan.get('focus')}
+
+Exercises:
+"""
+            for ex in request.todayPlan.get("exercises", []):
+                prompt += f"- {ex.get('name')} ({ex.get('sets')} x {ex.get('reps')})\n"
+
+        prompt += """
+Reply in Hinglish like a real coach.
+Keep it short, motivating, and practical.
+"""
+
+        # 🔥 Gemini call
+        response = gemini_client.models.generate_content(
+            model=MODEL,
+            contents=[prompt]
+        )
+
+        # ✅ Safe extraction
+        reply = getattr(response, "text", None)
+
+        if not reply:
+            reply = response.candidates[0].content.parts[0].text
+
+        reply = reply.strip()
+
+        return {
+            "success": True,
+            "type": "chat",
+            "reply": reply
+        }
+
+    except Exception as e:
+        print("❌ CHAT ERROR:", str(e))
+        return {
+            "success": False,
+            "error": str(e)
+        }
