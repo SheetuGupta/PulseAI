@@ -1,41 +1,64 @@
 import os
 import json
+import time
 from typing import Dict, List
 from dotenv import load_dotenv
-from google import genai
+from openai import OpenAI
 
 # ==============================
 # CONFIG
 # ==============================
 
 load_dotenv()
-API_KEY = os.getenv("GENAI_API_KEY")
-client = genai.Client(api_key=API_KEY)
-
-MODEL = "gemini-2.5-flash-lite"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
+MODEL = "gpt-4o-mini"
 
 # ==============================
 # SAFE LLM CALL
 # ==============================
 
-def call_llm(prompt: str) -> str:
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt
-    )
-    return response.text.strip()
+def call_llm(prompt: str, retries: int = 3) -> str:
+    """Call OpenAI with exponential backoff on rate limit errors."""
+    for attempt in range(retries):
+        try:
+            response = openai_client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            err = str(e)
+            is_rate_limit = "429" in err or "rate_limit" in err.lower()
+            if is_rate_limit and attempt < retries - 1:
+                wait = 2 ** attempt
+                print(f"[RATE LIMIT] Retrying in {wait}s... (attempt {attempt + 1}/{retries})")
+                time.sleep(wait)
+                continue
+            print(f"[LLM ERROR] {e}")
+            raise RuntimeError(f"OpenAI call failed: {e}")
 
 # ==============================
 # SAFE JSON PARSER
 # ==============================
 
 def safe_json_parse(text: str):
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    text = text.strip()
     try:
         return json.loads(text)
-    except:
+    except Exception:
         start = text.find("{")
         end = text.rfind("}") + 1
-        return json.loads(text[start:end])
+        if start != -1 and end > start:
+            return json.loads(text[start:end])
+        raise ValueError("Could not parse JSON from LLM response")
 
 # ==============================
 # EXERCISE DATABASE (RAG)
@@ -110,7 +133,7 @@ EXERCISE_DB = [
   {"name": "Neck Extension", "type": "strength", "level": "beginner"},
 
   {"name": "Jump Rope", "type": "cardio", "level": "beginner"},
-  {"name": "Shadow Boxing", "type": "cardio", "level": "intermediate"}
+  {"name": "Shadow Boxing", "type": "cardio", "level": "intermediate"},
 ]
 
 # ==============================
@@ -126,7 +149,7 @@ def normalize_input(user_json: Dict) -> Dict:
         "goal": user_json.get("fitnessGoals", ["general"])[0],
         "diet": user_json.get("dietaryPreferences", []),
         "health_conditions": user_json.get("healthConditions", []),
-        "target_weight": user_json.get("targetWeight")
+        "target_weight": user_json.get("targetWeight"),
     }
 
 # ==============================
@@ -134,9 +157,7 @@ def normalize_input(user_json: Dict) -> Dict:
 # ==============================
 
 def analyze_user(user: Dict) -> Dict:
-
-    prompt = f"""
-You are a fitness analyst AI.
+    prompt = f"""You are a fitness analyst AI.
 
 Analyze this user and return structured insights.
 
@@ -144,7 +165,7 @@ USER:
 {json.dumps(user)}
 
 STRICT:
-- Output ONLY JSON
+- Output ONLY JSON (no markdown, no backticks, no explanation)
 
 FORMAT:
 {{
@@ -154,7 +175,6 @@ FORMAT:
   "risk_notes": []
 }}
 """
-
     text = call_llm(prompt)
     return safe_json_parse(text)
 
@@ -163,9 +183,7 @@ FORMAT:
 # ==============================
 
 def retrieve_exercises(analysis: Dict) -> List[Dict]:
-
     level = analysis.get("fitness_category", "beginner")
-
     return [
         ex for ex in EXERCISE_DB
         if ex["level"] == level or ex["level"] == "beginner"
@@ -176,9 +194,7 @@ def retrieve_exercises(analysis: Dict) -> List[Dict]:
 # ==============================
 
 def generate_plan(user: Dict, analysis: Dict, exercises: List[Dict]):
-
-    prompt = f"""
-You are an expert fitness coach AI.
+    prompt = f"""You are an expert fitness coach AI.
 
 USER:
 {json.dumps(user)}
@@ -189,11 +205,10 @@ ANALYSIS:
 AVAILABLE EXERCISES:
 {json.dumps(exercises)}
 
-Create a personalized workout plan.
+Create a personalized 7-day workout plan.
 
 STRICT:
-- Output ONLY JSON
-- No explanation
+- Output ONLY JSON (no markdown, no backticks, no explanation)
 
 FORMAT:
 {{
@@ -214,7 +229,6 @@ FORMAT:
   ]
 }}
 """
-
     text = call_llm(prompt)
     return safe_json_parse(text)
 
@@ -223,27 +237,13 @@ FORMAT:
 # ==============================
 
 def workout_pipeline(raw_input: Dict):
-
     user = normalize_input(raw_input)
-
     analysis = analyze_user(user)
-
     exercises = retrieve_exercises(analysis)
-
     plan = generate_plan(user, analysis, exercises)
 
     return {
         "user": user["name"],
         "analysis": analysis,
-        "workout_plan": plan
+        "workout_plan": plan,
     }
-
-# ==============================
-# TEST INPUT
-# ==============================
-
-if __name__ == "__main__":
-
-    result = workout_pipeline(input_json)
-
-    print(json.dumps(result, indent=2))

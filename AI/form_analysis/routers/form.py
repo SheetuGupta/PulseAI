@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from AI.form_analysis.pipeline.video_processor import validate_video, extract_frames
 from AI.form_analysis.pipeline.pose_estimator import PoseEstimator
-from AI.form_analysis.pipeline.gemini_analyzer import analyze_with_gemini
+from AI.form_analysis.pipeline.openai_analyzer import analyze_with_openai
 from AI.form_analysis.pipeline.feedback_builder import build_feedback
 from AI.form_analysis.config.settings import FRAMES_PER_SECOND
 from AI.form_analysis.config.settings import MAX_VIDEO_SECONDS
@@ -55,9 +55,9 @@ def analyze_form_pipeline(
             estimator.close()
 
         # -------------------------------
-        # 4. Gemini Analysis
+        # 4. OpenAI Analysis
         # -------------------------------
-        gemini_result = analyze_with_gemini(
+        ai_result = analyze_with_openai(
             frames,
             frame_analyses,
             exercise_hint,
@@ -68,7 +68,7 @@ def analyze_form_pipeline(
         # 5. Build Feedback
         # -------------------------------
         feedback = build_feedback(
-            gemini_result,
+            ai_result,
             frame_analyses,
             validation["duration"]
         )
