@@ -8,8 +8,8 @@ from google import genai
 # CONFIG
 # ==============================
 
-load_dotenv()
-API_KEY = os.getenv("GENAI_API_KEY")
+load_dotenv(override=True)
+API_KEY = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or "UNSET_API_KEY"
 client = genai.Client(api_key=API_KEY)
 
 MODEL = "gemini-2.5-flash-lite"

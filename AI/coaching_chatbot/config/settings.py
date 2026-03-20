@@ -1,11 +1,13 @@
 # coaching_chatbot/config/settings.py
 import os
 from dotenv import load_dotenv
+import pathlib
 from google import genai
 
-load_dotenv()
+root_env = os.path.join(os.getcwd(), ".env")
+load_dotenv(root_env, override=True)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or "UNSET_GEMINI_KEY"
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 PORT = int(os.getenv("PORT", 8002))
 

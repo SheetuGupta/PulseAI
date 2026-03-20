@@ -7,8 +7,8 @@ from google import genai
 # CONFIG
 # ==============================
 
-load_dotenv()
-API_KEY = os.getenv("GENAI_API_KEY")
+load_dotenv(override=True)
+API_KEY = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or "UNSET_API_KEY"
 print("API KEY:", API_KEY)
 client = genai.Client(api_key=API_KEY)
 MODEL = "gemini-2.5-flash-lite"
@@ -47,19 +47,15 @@ def ai_meal_planner(memory, foods):
 You are an AI diet planning agent.
 
 TARGET CALORIES: {memory['target_calories']}
-CURRENT CALORIES: {memory['current_calories']}
-
-SELECTED: {memory['selected_meals']}
-FAILED: {memory['attempted_meals']}
 
 FOOD OPTIONS:
-{foods}
+{json.dumps(foods, indent=2)}
 
 RULES:
 - Must be vegetarian
-- Must not exceed calories
-- Do NOT repeat
-- Respond ONLY with food name
+- Total calories must be close to TARGET CALORIES (at least 90%)
+- Do NOT repeat foods
+- Respond ONLY with a valid JSON array of food names. For example: ["Oats", "Salad", "Paneer Curry"]
 """
 
     response = client.models.generate_content(
@@ -67,7 +63,19 @@ RULES:
         contents=prompt
     )
 
-    return response.text.strip()
+    text = response.text.strip()
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    text = text.strip()
+    
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return []
 
 # ==============================
 # MAIN PIPELINE (IMPORTANT)
@@ -75,65 +83,65 @@ RULES:
 
 def meal_pipeline(user_input: Dict):
 
+    target_calories = calculate_calorie_target(user_input)
+
     memory = {
         "goal": "weight-loss meal plan",
-        "preference": user_input["dietaryPreferences"][0],
-        "target_calories": calculate_calorie_target(user_input),
-        "current_calories": 0,
-        "selected_meals": [],
-        "attempted_meals": [],
-        "plan_complete": False
+        "preference": user_input.get("dietaryPreferences", ["veg"])[0] if user_input.get("dietaryPreferences") else "veg",
+        "target_calories": target_calories,
     }
 
-    max_iterations = 20
-    iterations = 0
+    choices = ai_meal_planner(memory, FOODS)
+    print("AI RAW:", choices)
 
-    while not memory["plan_complete"] and iterations < max_iterations:
-        iterations += 1
+    selected_meals = []
+    current_calories = 0
 
-        choice = ai_meal_planner(memory, FOODS)
-        print("AI RAW:", choice)
+    if not isinstance(choices, list):
+        choices = []
 
+    for choice in choices:
         food = next((f for f in FOODS if f["name"] == choice), None)
 
         if not food:
-            memory["attempted_meals"].append(choice)
             continue
 
-        if food["name"] in [m["name"] for m in memory["selected_meals"]]:
+        if food["name"] in [m["name"] for m in selected_meals]:
             continue
 
-        if memory["current_calories"] + food["calories"] > memory["target_calories"]:
-            memory["attempted_meals"].append(choice)
+        if current_calories + food["calories"] > target_calories:
             continue
 
-        memory["selected_meals"].append({
+        selected_meals.append({
             "name": food["name"],
             "calories": food["calories"]
         })
 
-        memory["current_calories"] += food["calories"]
+        current_calories += food["calories"]
 
-        if memory["current_calories"] >= memory["target_calories"] * 0.9:
-            memory["plan_complete"] = True
-
-    if not memory["selected_meals"]:
+    if not selected_meals:
         return {
-            "user": user_input["name"],
+            "user": user_input.get("name", "Unknown"),
             "error": "Meal generation failed"
         }
 
     return {
-        "user": user_input["name"],
-        "target_calories": memory["target_calories"],
-        "total_calories": memory["current_calories"],
-        "meals": memory["selected_meals"]
+        "user": user_input.get("name", "Unknown"),
+        "target_calories": target_calories,
+        "total_calories": current_calories,
+        "meals": selected_meals
     }
 # ==============================
 # TEST
 # ==============================
 
 if __name__ == "__main__":
+
+    input_json = {
+        "name": "Vishal",
+        "weight": 80,
+        "dietaryPreferences": ["veg"]
+    }
 
     result = meal_pipeline(input_json)
 
