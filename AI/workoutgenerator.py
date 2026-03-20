@@ -12,7 +12,7 @@ load_dotenv()
 API_KEY = os.getenv("GENAI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-2.5-flash-lite"
 
 # ==============================
 # SAFE LLM CALL
