@@ -2,17 +2,17 @@
 import os
 from dotenv import load_dotenv
 import pathlib
-from openai import OpenAI
+import google.generativeai as genai
 
 root_env = os.path.join(os.getcwd(), ".env")
 load_dotenv(root_env, override=True)
 
-OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY") or "UNSET_OPENAI_KEY"
-print("FORM ANALYSIS KEY RESOLVED TO:", OPENAI_API_KEY)
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY") or "UNSET_GEMINI_KEY"
+print("FORM ANALYSIS KEY RESOLVED")
 PORT: int = int(os.getenv("PORT", 8001))
 MAX_VIDEO_SECONDS: int = int(os.getenv("MAX_VIDEO_SECONDS", 30))
 FRAMES_PER_SECOND: int = int(os.getenv("FRAMES_PER_SECOND", 1))
 
-MODEL = "gpt-4o"
+MODEL = "gemini-1.5-pro"
 
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)

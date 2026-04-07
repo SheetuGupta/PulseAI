@@ -3,7 +3,8 @@ import json
 import base64
 from io import BytesIO
 import PIL.Image
-from AI.form_analysis.config.settings import openai_client, MODEL
+import google.generativeai as genai
+from AI.form_analysis.config.settings import MODEL
 from AI.form_analysis.models.schemas import FrameAnalysis
 
 def build_analysis_prompt(frame_analyses: list[FrameAnalysis], exercise_hint: str = "", perceived_difficulty: str = "") -> str:
@@ -78,32 +79,20 @@ Be specific. Reference the actual angles from the pose data. A good correction c
 def analyze_with_gemini(frames: list[dict], frame_analyses: list[FrameAnalysis], exercise_hint: str = "", perceived_difficulty: str = "") -> dict:
     prompt = build_analysis_prompt(frame_analyses, exercise_hint, perceived_difficulty)
     
-    content = [{"type": "text", "text": prompt}]
+    content = [prompt]
     
     frame_count = 0
     for frame in frames:
         if frame_count >= 30:
             break
             
-        buffered = BytesIO()
-        frame["image"].save(buffered, format="JPEG")
-        base64_img = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        
-        content.append({
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{base64_img}",
-                "detail": "low"
-            }
-        })
+        content.append(frame["image"])
         frame_count += 1
         
     try:
-        response = openai_client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "user", "content": content}]
-        )
-        text = response.choices[0].message.content.strip()
+        model = genai.GenerativeModel(MODEL)
+        response = model.generate_content(content)
+        text = response.text.strip()
         
         if text.startswith("```json"):
             text = text[7:]

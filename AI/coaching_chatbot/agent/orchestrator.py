@@ -1,6 +1,7 @@
 # coaching_chatbot/agent/orchestrator.py
 from typing import AsyncGenerator
-from config.settings import openai_client, MODEL
+import google.generativeai as genai
+from config.settings import MODEL
 from agent.safety_guard import check_safety
 from agent.intent_detector import detect_intent
 from agent.context_builder import build_context
@@ -62,11 +63,9 @@ async def run(user_id: str, session_id: str, message: str, db) -> ChatResponse:
     context = build_context(user_id, session_id, message, intent.value, db)
     prompt = build_prompt(message, intent.value, context)
     
-    response_obj = openai_client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    full_response = response_obj.choices[0].message.content
+    model = genai.GenerativeModel(MODEL)
+    response_obj = model.generate_content(prompt)
+    full_response = response_obj.text
     
     plan_change = parse_plan_change(full_response)
     if plan_change:
@@ -105,12 +104,10 @@ async def stream_response(user_id: str, session_id: str, message: str, db) -> As
     
     full_response = ""
     try:
-        for chunk in openai_client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            stream=True
-        ):
-            text_chunk = chunk.choices[0].delta.content
+        model = genai.GenerativeModel(MODEL)
+        response = model.generate_content(prompt, stream=True)
+        for chunk in response:
+            text_chunk = chunk.text
             if text_chunk:
                 full_response += text_chunk
                 yield text_chunk

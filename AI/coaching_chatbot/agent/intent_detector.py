@@ -1,5 +1,6 @@
 # coaching_chatbot/agent/intent_detector.py
-from config.settings import openai_client, MODEL
+import google.generativeai as genai
+from config.settings import MODEL
 from models.schemas import Intent
 
 INTENT_PROMPT_TEMPLATE = """
@@ -56,11 +57,9 @@ No explanation. No punctuation. Just the category.
 
 def detect_intent(message: str) -> Intent:
     prompt = INTENT_PROMPT_TEMPLATE.format(message=message)
-    response = openai_client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    raw = response.choices[0].message.content.strip().lower()
+    model = genai.GenerativeModel(MODEL)
+    response = model.generate_content(prompt)
+    raw = response.text.strip().lower()
     raw = raw.replace(" ", "_").strip(".")
     try:
         return Intent(raw)
